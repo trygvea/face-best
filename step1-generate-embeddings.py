@@ -9,6 +9,10 @@ import numpy as np
 from skimage import io
 import cv2
 
+from util import dict_minus_immutable, load_dict, save_dict
+
+intermediate_file = '.intermediate/faces.npy'
+
 data_dir = os.path.expanduser('~/data')
 
 # Globals
@@ -40,10 +44,6 @@ face_classifier_opencv = cv2.CascadeClassifier(data_dir + '/opencv/haarcascade_f
 # def face_detector_dlib(image):
 #     bounds = dlib_frontal_face_detector(image, 0) # second parameter is upsample; 1 or 2 will detect smaller faces. 0 performs similar to opencv with current parameters
 #     return list(map(lambda b: to_rect(b), bounds))
-
-
-def get_face_matches(known_faces, face):
-    return np.linalg.norm(known_faces - face, axis=1)
 
 
 def dlib_landmarks_to_array(dlib_landmarks):
@@ -100,93 +100,23 @@ def load_people(path):
     return all_persons
 
 
-def calculate_quality(own_matches, other_matches):
-    own = np.average(own_matches)
-    other = np.average(other_matches)
-    return (other-own, own, other)
-
-def dict_minus(dict, key):
-    d = dict.copy()
-    d.pop(key)
-    return d
-
-
-def find_other_embeddings(embeddings_per_person, person_id):
-    others_embeddings = dict_minus(embeddings_per_person, person_id).values()
-    return [item for sublist in others_embeddings for item in sublist]  # just efficient flatten()
-
-
-def calculate_qualities(people):
-    print("Calculating embedding qualities")
-    embeddings_per_person = dict([(k, [f["embedding"] for f in v["faces"]]) for k, v in people.items()])
-
-    for person_id, person in people.items():
-        print("  " + person_id + ":")
-        own_embeddings = [f["embedding"] for f in person["faces"]]
-        others_embeddings = find_other_embeddings(embeddings_per_person, person_id)
-
-        for face in person["faces"]:
-            own_embeddings_except_this_face = own_embeddings # TODO minus self
-            some_others_embeddings = others_embeddings # For now use all, it runs fast :)
-
-            own_matches = get_face_matches(own_embeddings_except_this_face, face["embedding"])
-            other_matches = get_face_matches(some_others_embeddings, face["embedding"])
-            quality = calculate_quality(own_matches, other_matches)
-
-            face["quality"] = (face["image_id"], quality)
-
-        print("   - qualities: ", [face["quality"] for face in person["faces"]])
-
-
-# def measure_goodness(face, faces, algorithm):
-#     return None
-#
-#
-# def measure_goodness(people, algorithm):
-#     all_embeddings = people.
-#     for person in people:
-#         best_face = algorithm(person.faces)
-#         own_embeddings =
-#         own_distance = faces
-#
-#     return None
-
-
-# # Algorithms
-#
-# def random(faces):
-#     return faces[0]
-#
-# def simple_landmark(faces):
-#     return faces[0]
-#
-# def learned(faces):
-#     return faces[0]
-#
-
-##########
-
-
-
 # Start
 people = load_people(data_dir + '/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples/')
-#print(all_faces)
-calculate_qualities(people)
-# measure_goodness(people, random)
-# measure_goodness(people, simple_landmark)
-# measure_goodness(people, learned)
+num_faces = [len(p["faces"]) for p in people.values()]
 
+print("Loaded ", len(people.keys()), " people with an average of ", np.average(num_faces), " recognized face images each")
 
+print("Saving people and embeddings to file "+intermediate_file)
+save_dict(intermediate_file, people)
+print("Done")
 
 # people:
 #{
 #    'm.03g19n': {
 #        'person_id': 'm.03g19n',
-#        'best_landmark':, ''
 #        'faces': [
 #            {
 #                'image_id': '82-FaceId-0.jpg',
-#                'quality': TBD: 0..1
 #                'path':  '/Users/trygve/data/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples//m.03g19n/82-FaceId-0.jpg',
 #                'bounds': rectangle(21,37,93,109),
 #                'landmarks': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84)],

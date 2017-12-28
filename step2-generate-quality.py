@@ -1,25 +1,17 @@
-# Cut and paste from:
-#   http://dlib.net/face_recognition.py.html
-#   https://github.com/ageitgey/face_recognition/blob/master/face_recognition/api.py
-#   https://medium.com/towards-data-science/facial-recognition-using-deep-learning-a74e9059a150
-
 import numpy as np
 from skimage import io
 import matplotlib.pyplot as plt
-import pprint
 
 from util import dict_minus_immutable, load_dict, timing
+from config import *
 
-intermediate_file = '.intermediate/faces.npy'
 
-timings = {}
-
-@timing(timings, "get_face_matches")
+@timing
 def get_face_matches(known_faces, face):
     return np.linalg.norm(known_faces - face, axis=1)
 
 
-@timing(timings, "calculate_quality")
+@timing
 def calculate_quality(own_matches, other_matches):
     """
     IDEAS:
@@ -40,6 +32,15 @@ def calculate_quality(own_matches, other_matches):
     details["std_own"] = std_own
     details["std_oth"] = std_oth
 
+    others_like_me_n = int(len(other_matches)*0.20) # the 20% that looks most like me
+    details["avg_others_like_me"] = np.average(sorted(other_matches)[:others_like_me_n])
+
+    # Number of own images that fails comparison
+    details["n_false_negative"] = len(own_matches[own_matches > 0.6])
+
+    # Number of other images that tests positive
+    details["n_false_positive"] = len(other_matches[other_matches < 0.6])
+
     quality = avg_oth - avg_own
     return (quality, details)
 
@@ -55,7 +56,7 @@ def calculate_qualities(people):
 
     for person_id, person in people.items():
         others_embeddings = find_other_embeddings(embeddings_per_person, person_id)
-        print("  " + person_id + ": (", len(others_embeddings), ")")
+        print("  " + person_id + ": faces: ", len(person["faces"]), ", other faces: ", len(others_embeddings))
 
         for face in person["faces"]:
             own_embeddings_except_this_face = [f["embedding"] for f in person["faces"] if f["image_id"] != face["image_id"]]
@@ -68,7 +69,7 @@ def calculate_qualities(people):
             face["quality"] = quality
             face["quality_details"] = quality_details
 
-        print("   - qualities: ", [face["quality"] for face in person["faces"]])
+        # print("   - qualities: ", [face["quality"] for face in person["faces"]])
 
 
 def print_best_image(people):
@@ -87,7 +88,14 @@ def plot_persons_faces(person):
     for i, face in enumerate(faces):
         image = io.imread(face["path"])
         ax = plt.subplot(num_cols, num_cols, i + 1)
-        ax.text(0, 40, " {0:.2f}".format(face["quality"]), fontsize=10, color='red')
+
+        #ax.text(0, 40, "{0:.2f}".format(face["quality"]), fontsize=10, color='red')
+        ax.text(0, 40, "{0:.2f}".format(face["quality_details"]["avg_own"]), fontsize=10, color='red')
+        ax.text(100, 40, "{0:.2f}".format(face["quality_details"]["avg_oth"]), fontsize=10, color='green')
+        ax.text(0, 80, "{0:.2f}".format(face["quality_details"]["n_false_negative"]), fontsize=10, color='blue')
+        ax.text(100, 80, "{0:.2f}".format(face["quality_details"]["n_false_positive"]), fontsize=10, color='yellow')
+        ax.text(0, 120, "{0:.2f}".format(face["quality_details"]["avg_others_like_me"]), fontsize=10, color='white')
+
         ax.set_xticklabels([])
         ax.set_yticklabels([])
         ax.get_xaxis().set_visible(False)
@@ -99,13 +107,12 @@ def plot_persons_faces(person):
     return None
 
 def plot_images(people):
-    # for person in people.values():
-    #     print("Plotting face for ", person["person_id"])
-    #     plot_persons_faces(person)
-    people_arr = list(people.values())
-    plot_persons_faces(people_arr[0])
-    plot_persons_faces(people_arr[7])
-    plot_persons_faces(people_arr[8])
+    for person in people.values():
+        plot_persons_faces(person)
+    # people_arr = list(people.values())
+    # plot_persons_faces(people_arr[0])
+    # plot_persons_faces(people_arr[7])
+    # plot_persons_faces(people_arr[8])
 
 # def measure_goodness(face, faces, algorithm):
 #     return None
@@ -141,11 +148,8 @@ people = load_dict(intermediate_file)
 calculate_qualities(people)
 
 print_best_image(people)
+
 plot_images(people)
-
-print("Timings:")
-pprint.pprint(timings)
-
 plt.show()
 
 # measure_goodness(people, random)
@@ -168,7 +172,8 @@ plt.show()
 #                },
 #                'path':  '/Users/trygve/data/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples//m.03g19n/82-FaceId-0.jpg',
 #                'bounds': rectangle(21,37,93,109),
-#                'landmarks': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84)],
+#                'landmarks-5': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84)],
+#                'landmarks-68': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84), ...],
 #                'embedding': array([<128-vector embedding>])
 #            },
 #            {
@@ -179,7 +184,8 @@ plt.show()
 #                },
 #                'path':  '/Users/trygve/data/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples//m.03g19n/91-FaceId-0.jpg',
 #                'bounds': rectangle(21,37,93,109),
-#                'landmarks': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84)],
+#                'landmarks-5': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84)],
+#                'landmarks-68': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84), ...],
 #                'embedding': array([<128-vector embedding>])
 #            },
 #            ...

@@ -1,28 +1,11 @@
-# Cut and paste from:
-#   http://dlib.net/face_recognition.py.html
-#   https://github.com/ageitgey/face_recognition/blob/master/face_recognition/api.py
-#   https://medium.com/towards-data-science/facial-recognition-using-deep-learning-a74e9059a150
-
 import os
 import dlib
 import numpy as np
 from skimage import io
 import cv2
-import pprint
 
 from util import save_dict, timing
-
-intermediate_file = '.intermediate/faces.npy'
-
-data_dir = os.path.expanduser('~/data')
-
-# Globals
-dlib_frontal_face_detector = dlib.get_frontal_face_detector()
-shape_predictor_5 = dlib.shape_predictor(data_dir + '/dlib/shape_predictor_5_face_landmarks.dat')
-shape_predictor_68 = dlib.shape_predictor(data_dir + '/dlib/shape_predictor_68_face_landmarks.dat')
-face_recognition_model = dlib.face_recognition_model_v1(data_dir + '/dlib/dlib_face_recognition_resnet_model_v1.dat')
-face_classifier_opencv = cv2.CascadeClassifier(data_dir + '/opencv/haarcascade_frontalface_default.xml')
-
+from config import *
 
 
 # def to_dlib_rect(w, h):
@@ -49,30 +32,27 @@ face_classifier_opencv = cv2.CascadeClassifier(data_dir + '/opencv/haarcascade_f
 #     return list(map(lambda b: to_rect(b), bounds))
 
 
-# Timings
-timings = {}
-
 def dlib_landmarks_to_array(dlib_landmarks):
     return [(p.x, p.y) for p in dlib_landmarks.parts()]
 
 
-@timing(timings, "read_file")
+@timing
 def read_file(path_to_image):
     return io.imread(path_to_image)
 
-@timing(timings, "detect_face")
+@timing
 def detect_face(image):
     return dlib_frontal_face_detector(image, 0) # second parameter is upsample; 1 or 2 will detect smaller faces. 0 performs similar to opencv with current parameters
 
-@timing(timings, "get_landmarks-5")
+@timing
 def get_landmarks_5(image, face_bounds):
     return shape_predictor_5(image, face_bounds)
 
-@timing(timings, "get_landmarks-68")
+@timing
 def get_landmarks_68(image, face_bounds):
     return shape_predictor_68(image, face_bounds)
 
-@timing(timings, "get_embedding")
+@timing
 def get_embedding(image, landmarks):
     return np.array(
         face_recognition_model.compute_face_descriptor(image, landmarks, 1)
@@ -127,7 +107,7 @@ def load_people(path):
     return all_persons
 
 
-@timing(timings, "run")
+@timing
 def run():
     people = load_people(data_dir + '/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples/')
     num_faces = [len(p["faces"]) for p in people.values()]
@@ -139,8 +119,6 @@ def run():
 
 
 run()
-print("Timings:")
-pprint.pprint(timings)
 
 # people:
 #{
@@ -151,14 +129,16 @@ pprint.pprint(timings)
 #                'image_id': '82-FaceId-0.jpg',
 #                'path':  '/Users/trygve/data/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples//m.03g19n/82-FaceId-0.jpg',
 #                'bounds': rectangle(21,37,93,109),
-#                'landmarks': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84)],
+#                'landmarks-5': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84)],
+#                'landmarks-68': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84), ...],
 #                'embedding': array([<128-vector embedding>])
 #            },
 #            {
 #                'image_id': '91-FaceId-0.jpg',
 #                'path':  '/Users/trygve/data/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples//m.03g19n/91-FaceId-0.jpg',
 #                'bounds': rectangle(21,37,93,109),
-#                'landmarks': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84)],
+#                'landmarks-5': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84)],
+#                'landmarks-68': [(80, 52), (66, 54), (31, 52), (44, 54), (56, 84), ...],
 #                'embedding': array([<128-vector embedding>])
 #            },
 #            ...

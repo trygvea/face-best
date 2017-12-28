@@ -1,12 +1,12 @@
 # Find best face
 
 From a set of face images for a certain person, find the face image that
-    - Will match most other faces of the same person
-    - Will match least faces of other persons
+  - Will match most other faces of the same person
+  - Will match least faces of other persons
 
 Strategies:
-    - Use facial landmarks to learn the best embedding possible
-    - Or, maybe just use embeddings and calculate a good quality metric
+  - Use facial landmarks to learn the best embedding possible
+  - Or, maybe just use embeddings and calculate a good quality metric
 
 
 # WIP - Work in progress
@@ -39,10 +39,12 @@ Strategies:
 
 # TODO
 
+* Align numbers on figures better
+* Speed up figures  
+
 * Phase 0:
     - learn linear regression of facial landmarks to quality
         - Check out https://machinelearningmastery.com/regression-tutorial-keras-deep-learning-library-python/
-
     - Decide on simple, phase0 result metric
     - Visualise result
         - TODO
@@ -53,6 +55,5 @@ Strategies:
     - Deeper quality metrics. Example
         - Compare only with best 20% of ohher faces
         - should use (mean - stddev) when comparing own and others.
-        - 
 
 * Make unit tests

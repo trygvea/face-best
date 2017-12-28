@@ -3,21 +3,23 @@
 #   https://github.com/ageitgey/face_recognition/blob/master/face_recognition/api.py
 #   https://medium.com/towards-data-science/facial-recognition-using-deep-learning-a74e9059a150
 
-import os
-import dlib
 import numpy as np
 from skimage import io
-import cv2
 import matplotlib.pyplot as plt
+import pprint
 
-from util import dict_minus_immutable, load_dict, save_dict
+from util import dict_minus_immutable, load_dict, timing
 
 intermediate_file = '.intermediate/faces.npy'
 
+timings = {}
+
+@timing(timings, "get_face_matches")
 def get_face_matches(known_faces, face):
     return np.linalg.norm(known_faces - face, axis=1)
 
 
+@timing(timings, "calculate_quality")
 def calculate_quality(own_matches, other_matches):
     """
     IDEAS:
@@ -52,8 +54,8 @@ def calculate_qualities(people):
     embeddings_per_person = dict([(k, [f["embedding"] for f in v["faces"]]) for k, v in people.items()])
 
     for person_id, person in people.items():
-        print("  " + person_id + ":")
         others_embeddings = find_other_embeddings(embeddings_per_person, person_id)
+        print("  " + person_id + ": (", len(others_embeddings), ")")
 
         for face in person["faces"]:
             own_embeddings_except_this_face = [f["embedding"] for f in person["faces"] if f["image_id"] != face["image_id"]]
@@ -78,14 +80,14 @@ def print_best_image(people):
 
 def plot_persons_faces(person):
     faces = sorted(person["faces"], key=lambda f: -f['quality'])    # best quality first
-    faces = faces[0:10] + faces[-10:]   # Just some, not all
-    num_cols = int(np.sqrt(len(faces))) + 1
+    faces = faces[0:18] + faces[-18:]   # Just some, not all
+    num_cols = int(np.sqrt(len(faces))-(1e-7)) + 1
     print("Plotting face for ", person["person_id"])
     plt.figure(figsize=(num_cols, num_cols))
     for i, face in enumerate(faces):
         image = io.imread(face["path"])
         ax = plt.subplot(num_cols, num_cols, i + 1)
-        ax.text(0, 20, " {0:.2f}".format(face["quality"]), fontsize=7)
+        ax.text(0, 40, " {0:.2f}".format(face["quality"]), fontsize=10, color='red')
         ax.set_xticklabels([])
         ax.set_yticklabels([])
         ax.get_xaxis().set_visible(False)
@@ -93,7 +95,7 @@ def plot_persons_faces(person):
         plt.imshow(image)
         plt.gray()
     plt.subplots_adjust(wspace=0, hspace=0)
-    plt.show()
+    plt.draw()  # plt.show()
     return None
 
 def plot_images(people):
@@ -141,19 +143,10 @@ calculate_qualities(people)
 print_best_image(people)
 plot_images(people)
 
-# TODO
-# TODO
-# TODO
-# TODO
-# (x,y) = find_landmark_and_quality(people)
-# Do linear regression on these
-# Check out https://machinelearningmastery.com/regression-tutorial-keras-deep-learning-library-python/
-# TODO try 68-points landmarks
-# TODO make some visualisations
+print("Timings:")
+pprint.pprint(timings)
 
-
-
-
+plt.show()
 
 # measure_goodness(people, random)
 # measure_goodness(people, simple_landmark)

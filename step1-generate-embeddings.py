@@ -8,10 +8,9 @@ import dlib
 import numpy as np
 from skimage import io
 import cv2
-import time
 import pprint
 
-from util import dict_minus_immutable, load_dict, save_dict
+from util import save_dict, timing
 
 intermediate_file = '.intermediate/faces.npy'
 
@@ -19,7 +18,8 @@ data_dir = os.path.expanduser('~/data')
 
 # Globals
 dlib_frontal_face_detector = dlib.get_frontal_face_detector()
-shape_predictor = dlib.shape_predictor(data_dir + '/dlib/shape_predictor_5_face_landmarks.dat')
+shape_predictor_5 = dlib.shape_predictor(data_dir + '/dlib/shape_predictor_5_face_landmarks.dat')
+shape_predictor_68 = dlib.shape_predictor(data_dir + '/dlib/shape_predictor_68_face_landmarks.dat')
 face_recognition_model = dlib.face_recognition_model_v1(data_dir + '/dlib/dlib_face_recognition_resnet_model_v1.dat')
 face_classifier_opencv = cv2.CascadeClassifier(data_dir + '/opencv/haarcascade_frontalface_default.xml')
 
@@ -52,39 +52,27 @@ face_classifier_opencv = cv2.CascadeClassifier(data_dir + '/opencv/haarcascade_f
 # Timings
 timings = {}
 
-def timing(name):
-    def timing_decorator(f):
-        def wrap(*args):
-            start = time.time()
-            ret = f(*args)
-            took = time.time() - start
-            if name not in timings:
-                timings[name] = {"invocations": 0, "totaltime": 0}
-            timings[name]["totaltime"] += took
-            timings[name]["invocations"] += 1
-            return ret
-        return wrap
-    return timing_decorator
-
-
-
 def dlib_landmarks_to_array(dlib_landmarks):
     return [(p.x, p.y) for p in dlib_landmarks.parts()]
 
 
-@timing("read_file")
+@timing(timings, "read_file")
 def read_file(path_to_image):
     return io.imread(path_to_image)
 
-@timing("detect_face")
+@timing(timings, "detect_face")
 def detect_face(image):
     return dlib_frontal_face_detector(image, 0) # second parameter is upsample; 1 or 2 will detect smaller faces. 0 performs similar to opencv with current parameters
 
-@timing("get_landmarks")
-def get_landmarks(image, face_bounds):
-    return shape_predictor(image, face_bounds)
+@timing(timings, "get_landmarks-5")
+def get_landmarks_5(image, face_bounds):
+    return shape_predictor_5(image, face_bounds)
 
-@timing("get_embedding")
+@timing(timings, "get_landmarks-68")
+def get_landmarks_68(image, face_bounds):
+    return shape_predictor_68(image, face_bounds)
+
+@timing(timings, "get_embedding")
 def get_embedding(image, landmarks):
     return np.array(
         face_recognition_model.compute_face_descriptor(image, landmarks, 1)
@@ -99,14 +87,16 @@ def load_face_metrics(face_image_id, path_to_image):
         return None
 
     face_bounds = faces_bounds[0]
-    face_landmarks = get_landmarks(image, face_bounds)
-    face_embedding = get_embedding(image, face_landmarks)
+    face_landmarks_5 = get_landmarks_5(image, face_bounds)
+    face_landmarks_68 = get_landmarks_68(image, face_bounds)
+    face_embedding = get_embedding(image, face_landmarks_5)
 
     metrics = {}
     metrics["image_id"] = face_image_id
     metrics["path"] = path_to_image
     metrics["bounds"] = face_bounds
-    metrics["landmarks"] = dlib_landmarks_to_array(face_landmarks)
+    metrics["landmarks-5"] = dlib_landmarks_to_array(face_landmarks_5)
+    metrics["landmarks-68"] = dlib_landmarks_to_array(face_landmarks_68)
     metrics["embedding"] = face_embedding
 
     return metrics
@@ -137,7 +127,7 @@ def load_people(path):
     return all_persons
 
 
-@timing("run")
+@timing(timings, "run")
 def run():
     people = load_people(data_dir + '/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples/')
     num_faces = [len(p["faces"]) for p in people.values()]

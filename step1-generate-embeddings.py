@@ -8,6 +8,8 @@ import dlib
 import numpy as np
 from skimage import io
 import cv2
+import time
+import pprint
 
 from util import dict_minus_immutable, load_dict, save_dict
 
@@ -20,6 +22,7 @@ dlib_frontal_face_detector = dlib.get_frontal_face_detector()
 shape_predictor = dlib.shape_predictor(data_dir + '/dlib/shape_predictor_5_face_landmarks.dat')
 face_recognition_model = dlib.face_recognition_model_v1(data_dir + '/dlib/dlib_face_recognition_resnet_model_v1.dat')
 face_classifier_opencv = cv2.CascadeClassifier(data_dir + '/opencv/haarcascade_frontalface_default.xml')
+
 
 
 # def to_dlib_rect(w, h):
@@ -46,24 +49,58 @@ face_classifier_opencv = cv2.CascadeClassifier(data_dir + '/opencv/haarcascade_f
 #     return list(map(lambda b: to_rect(b), bounds))
 
 
+# Timings
+timings = {}
+
+def timing(name):
+    def timing_decorator(f):
+        def wrap(*args):
+            start = time.time()
+            ret = f(*args)
+            took = time.time() - start
+            if name not in timings:
+                timings[name] = {"invocations": 0, "totaltime": 0}
+            timings[name]["totaltime"] += took
+            timings[name]["invocations"] += 1
+            return ret
+        return wrap
+    return timing_decorator
+
+
+
 def dlib_landmarks_to_array(dlib_landmarks):
     return [(p.x, p.y) for p in dlib_landmarks.parts()]
 
 
+@timing("read_file")
+def read_file(path_to_image):
+    return io.imread(path_to_image)
+
+@timing("detect_face")
+def detect_face(image):
+    return dlib_frontal_face_detector(image, 0) # second parameter is upsample; 1 or 2 will detect smaller faces. 0 performs similar to opencv with current parameters
+
+@timing("get_landmarks")
+def get_landmarks(image, face_bounds):
+    return shape_predictor(image, face_bounds)
+
+@timing("get_embedding")
+def get_embedding(image, landmarks):
+    return np.array(
+        face_recognition_model.compute_face_descriptor(image, landmarks, 1)
+    )
+
 def load_face_metrics(face_image_id, path_to_image):
-    image = io.imread(path_to_image)
+    image = read_file(path_to_image)
 
-    faces_bounds = dlib_frontal_face_detector(image, 0) # second parameter is upsample; 1 or 2 will detect smaller faces. 0 performs similar to opencv with current parameters
-
+    faces_bounds = detect_face(image)
     if len(faces_bounds) != 1:
         print("Expected one and only one face per image: " + path_to_image + " - it has " + str(len(faces_bounds)))
         return None
 
     face_bounds = faces_bounds[0]
-    face_landmarks = shape_predictor(image, face_bounds)
-    face_embedding = np.array(
-        face_recognition_model.compute_face_descriptor(image, face_landmarks, 1)
-    )
+    face_landmarks = get_landmarks(image, face_bounds)
+    face_embedding = get_embedding(image, face_landmarks)
 
     metrics = {}
     metrics["image_id"] = face_image_id
@@ -100,15 +137,20 @@ def load_people(path):
     return all_persons
 
 
-# Start
-people = load_people(data_dir + '/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples/')
-num_faces = [len(p["faces"]) for p in people.values()]
+@timing("run")
+def run():
+    people = load_people(data_dir + '/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples/')
+    num_faces = [len(p["faces"]) for p in people.values()]
 
-print("Loaded ", len(people.keys()), " people with an average of ", np.average(num_faces), " recognized face images each")
+    print("Loaded ", len(people.keys()), " people with an average of ", np.average(num_faces), " recognized face images each")
 
-print("Saving people and embeddings to file "+intermediate_file)
-save_dict(intermediate_file, people)
-print("Done")
+    print("Saving people and embeddings to file "+intermediate_file)
+    save_dict(intermediate_file, people)
+
+
+run()
+print("Timings:")
+pprint.pprint(timings)
 
 # people:
 #{

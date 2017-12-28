@@ -38,7 +38,7 @@ def calculate_quality(own_matches, other_matches):
     details["std_own"] = std_own
     details["std_oth"] = std_oth
 
-    quality = (avg_oth - avg_own, avg_own, avg_oth)
+    quality = avg_oth - avg_own
     return (quality, details)
 
 
@@ -71,13 +71,39 @@ def calculate_qualities(people):
 
 def print_best_image(people):
     for person_id, person in people.items():
-        faces = sorted(person["faces"], key=lambda f: -f['quality'][0])
+        faces = sorted(person["faces"], key=lambda f: -f['quality'])
         print("Best image for recognition for "+person_id+" is "+faces[0]["image_id"]+"; having quality:", faces[0]["quality"])
 
 
 
-def plot_images(faces):
+def plot_persons_faces(person):
+    faces = sorted(person["faces"], key=lambda f: -f['quality'])    # best quality first
+    faces = faces[0:10] + faces[-10:]   # Just some, not all
+    num_cols = int(np.sqrt(len(faces))) + 1
+    print("Plotting face for ", person["person_id"])
+    plt.figure(figsize=(num_cols, num_cols))
+    for i, face in enumerate(faces):
+        image = io.imread(face["path"])
+        ax = plt.subplot(num_cols, num_cols, i + 1)
+        ax.text(0, 20, " {0:.2f}".format(face["quality"]), fontsize=7)
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+        plt.imshow(image)
+        plt.gray()
+    plt.subplots_adjust(wspace=0, hspace=0)
+    plt.show()
     return None
+
+def plot_images(people):
+    # for person in people.values():
+    #     print("Plotting face for ", person["person_id"])
+    #     plot_persons_faces(person)
+    people_arr = list(people.values())
+    plot_persons_faces(people_arr[0])
+    plot_persons_faces(people_arr[7])
+    plot_persons_faces(people_arr[8])
 
 # def measure_goodness(face, faces, algorithm):
 #     return None
@@ -113,6 +139,7 @@ people = load_dict(intermediate_file)
 calculate_qualities(people)
 
 print_best_image(people)
+plot_images(people)
 
 # TODO
 # TODO

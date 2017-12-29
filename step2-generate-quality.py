@@ -73,6 +73,9 @@ def calculate_qualities(people):
 
 
 def filter_dataset_errors(people):
+    """
+    The MS-Celeb dataset have lots of people placed in wrong
+    """
     calculate_qualities(people)     # Or use a tailored calculation for filtering???
     for person_id, person in people.items():
         faces = sorted(person["faces"], key=lambda f: -f['quality'])
@@ -117,41 +120,12 @@ def plot_persons_faces(person):
     return None
 
 def plot_images(people):
-    for person in people.values():
-        plot_persons_faces(person)
-    # people_arr = list(people.values())
-    # plot_persons_faces(people_arr[0])
-    # plot_persons_faces(people_arr[7])
-    # plot_persons_faces(people_arr[8])
-
-# def measure_goodness(face, faces, algorithm):
-#     return None
-#
-#
-# def measure_goodness(people, algorithm):
-#     all_embeddings = people.
-#     for person in people:
-#         best_face = algorithm(person.faces)
-#         own_embeddings =
-#         own_distance = faces
-#
-#     return None
-
-
-# # Algorithms
-#
-# def random(faces):
-#     return faces[0]
-#
-# def simple_landmark(faces):
-#     return faces[0]
-#
-# def learned(faces):
-#     return faces[0]
-#
-
-##########
-
+    # for person in people.values():
+    #     plot_persons_faces(person)
+    people_arr = list(people.values())
+    plot_persons_faces(people_arr[1])
+    plot_persons_faces(people_arr[7])
+    plot_persons_faces(people_arr[11])
 
 
 people = load_dict(intermediate_file)
@@ -162,11 +136,6 @@ print_best_image(people)
 
 plot_images(people)
 plt.show()
-
-# measure_goodness(people, random)
-# measure_goodness(people, simple_landmark)
-# measure_goodness(people, learned)
-
 
 
 # people:

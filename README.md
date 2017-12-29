@@ -6,7 +6,7 @@ From a set of face images for a certain person, find the face image that
 
 Strategies:
   - Use facial landmarks to learn the best embedding possible
-  - Or, maybe just use embeddings and calculate a good quality metric
+  - Or, maybe just use embeddings and calculate a good quality metric (see below)
 
 
 # WIP - Work in progress
@@ -43,17 +43,19 @@ Strategies:
 * Speed up figures  
 
 * Phase 0:
-    - learn linear regression of facial landmarks to quality
+    - learn linear regression of facial landmarks to quality?
         - Check out https://machinelearningmastery.com/regression-tutorial-keras-deep-learning-library-python/
     - Decide on simple, phase0 result metric
-    - Visualise result
-        - TODO
+    - Visualize result
 
 * Phase 1-n:
+    - get hold of full MS-celeb - (if we are learning something)  
     - save intermediate qualities for faster cycling
     - Use 68-point landmarks (in stead of 5)
     - Deeper quality metrics. Example
         - Compare only with best 20% of ohher faces
         - should use (mean - stddev) when comparing own and others.
+    - Try to keep more than one embedding for better results!
+        - Keep one for each age!
 
-* Make unit tests
+* Unit tests

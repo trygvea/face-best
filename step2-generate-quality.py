@@ -72,6 +72,16 @@ def calculate_qualities(people):
         # print("   - qualities: ", [face["quality"] for face in person["faces"]])
 
 
+def filter_dataset_errors(people):
+    calculate_qualities(people)     # Or use a tailored calculation for filtering???
+    for person_id, person in people.items():
+        faces = sorted(person["faces"], key=lambda f: -f['quality'])
+        n_false_negatives = faces[0]["quality_details"]["n_false_negative"]
+        if n_false_negatives > 0:
+            print("Removing ",n_false_negatives," false negatives (probably wrong person) from ",person_id)
+            person["faces"] = faces[:-n_false_negatives]
+
+
 def print_best_image(people):
     for person_id, person in people.items():
         faces = sorted(person["faces"], key=lambda f: -f['quality'])
@@ -145,6 +155,7 @@ def plot_images(people):
 
 
 people = load_dict(intermediate_file)
+filter_dataset_errors(people)
 calculate_qualities(people)
 
 print_best_image(people)

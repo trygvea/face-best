@@ -1,8 +1,6 @@
-import os
-import dlib
 import numpy as np
 from skimage import io
-import cv2
+import matplotlib.pyplot as plt
 
 from util import save_dict, timing
 from config import *
@@ -88,37 +86,63 @@ def load_person(person_id, path):
     person_stuff["person_id"] = person_id
     person_file_names = [f for f in os.listdir(path) if os.path.isfile(path + "/" + f)]
     faces_metrics = []
+    error_faces = []
     for face_file_name in person_file_names:
-        face_metrics = load_face_metrics(face_file_name, path + "/" + face_file_name)
+        path_to_image = path + "/" + face_file_name
+        face_metrics = load_face_metrics(face_file_name, path_to_image)
         if (face_metrics is not None):
             faces_metrics.append(face_metrics)
+        else:
+            error_faces.append({"image_id": face_file_name, "path": path_to_image})
 
     person_stuff["faces"] = faces_metrics
-    return person_stuff
+    return person_stuff, error_faces
 
 
 def load_people(path):
     person_dirs = [d for d in os.listdir(path) if os.path.isdir(path + "/" + d)]
-    all_persons = {}
+    people = {}
+    errors = []
     for person_dir in person_dirs:
         person_id = person_dir
-        person_stuff = load_person(person_id, path + "/" + person_dir)
-        all_persons[person_id] = person_stuff
-    return all_persons
+        person_stuff, error_faces = load_person(person_id, path + "/" + person_dir)
+        people[person_id] = person_stuff
+        errors.append(error_faces)
+    return people, errors
+
+
+def plot_error_faces(people_errors):
+    errors = [e for e in people_errors if len(e) > 0]
+    errors_per_person = [len(e) for e in errors]
+    num_people_with_errors = len(errors)
+    max_errors = np.max(errors_per_person)
+    plt.figure("Unrecognized faces", figsize=(15, 10))
+    for row, error in enumerate(errors):
+        for col, error_face in enumerate(error):
+            image = io.imread(error_face["path"])
+            ax = plt.subplot(num_people_with_errors, max_errors, row*max_errors + col + 1)
+            ax.set_axis_off()
+            plt.imshow(image)
+    plt.subplots_adjust(wspace=0, hspace=0, left=0, right=1, top=1, bottom=0)
 
 
 @timing
 def run():
-    people = load_people(ms_celeb_samples_dir)
+    people, errors = load_people(ms_celeb_samples_dir)
     num_faces = [len(p["faces"]) for p in people.values()]
+    num_errors = sum([len(e) for e in errors])
 
-    print("Loaded ", len(people.keys()), " people with an average of ", np.average(num_faces), " recognized face images each")
+    print("Loaded ", len(people.keys()), " people with an average of ", np.average(num_faces), " recognized face images each, and a total of ", num_errors, " faces with no (or many) recognized faces")
 
     print("Saving people and embeddings to file "+intermediate_file)
     save_dict(intermediate_file, people)
 
+    print("Plotting unrecognized faces")
+    plot_error_faces(errors)
+
 
 run()
+plt.show()
 
 # people:
 #{

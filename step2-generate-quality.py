@@ -1,7 +1,5 @@
 import numpy as np
 from skimage import io
-from skimage.transform import resize
-import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 
 from util import dict_minus_immutable, load_dict, timing
@@ -128,6 +126,8 @@ def plot_images(people):
     plot_persons_faces(people_arr[1])
     plot_persons_faces(people_arr[7])
     plot_persons_faces(people_arr[11])
+
+
 
 
 people = load_dict(intermediate_file)

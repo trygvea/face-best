@@ -5,6 +5,7 @@ import cv2
 intermediate_file = '.intermediate/faces.npy'
 
 data_dir = os.path.expanduser('~/data')
+ms_celeb_samples_dir = data_dir + '/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples/'
 
 # Globals
 dlib_frontal_face_detector = dlib.get_frontal_face_detector()

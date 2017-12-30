@@ -109,7 +109,7 @@ def load_people(path):
 
 @timing
 def run():
-    people = load_people(data_dir + '/ms-celeb/MsCelebV1-Faces-Aligned.Samples/samples/')
+    people = load_people(ms_celeb_samples_dir)
     num_faces = [len(p["faces"]) for p in people.values()]
 
     print("Loaded ", len(people.keys()), " people with an average of ", np.average(num_faces), " recognized face images each")

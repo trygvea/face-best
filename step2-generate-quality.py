@@ -1,5 +1,7 @@
 import numpy as np
 from skimage import io
+from skimage.transform import resize
+import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 
 from util import dict_minus_immutable, load_dict, timing
@@ -91,31 +93,31 @@ def print_best_image(people):
         print("Best image for recognition for "+person_id+" is "+faces[0]["image_id"]+"; having quality:", faces[0]["quality"])
 
 
+def decorate_image_with_metrics(ax, image, face):
+    image_height, image_width, unused = image.shape
+    h, w = image_height / 5, image_width / 2   # text should be unaffected by image size (that may be uneven)
+    # ax.text(0, 0, "{0:.2f}".format(face["quality"]), fontsize=10, color='red', verticalalignment='bottom')
+    ax.text(0, 0,   "{0:.2f}".format(face["quality_details"]["avg_own"]), color='red', verticalalignment='top')
+    ax.text(w, 0,   "{0:.2f}".format(face["quality_details"]["avg_oth"]), color='green', verticalalignment='top')
+    ax.text(0, h,   "{0:.2f}".format(face["quality_details"]["n_false_negative"]), color='blue', verticalalignment='top')
+    ax.text(w, h,   "{0:.2f}".format(face["quality_details"]["n_false_positive"]), color='yellow', verticalalignment='top')
+    ax.text(0, h*2, "{0:.2f}".format(face["quality_details"]["avg_others_like_me"]), color='white', verticalalignment='top')
+
 
 def plot_persons_faces(person):
     faces = sorted(person["faces"], key=lambda f: -f['quality'])    # best quality first
     faces = faces[0:18] + faces[-18:]   # Just some, not all
     num_cols = int(np.sqrt(len(faces))-(1e-7)) + 1
     print("Plotting face for ", person["person_id"])
-    plt.figure(figsize=(num_cols, num_cols))
+    plt.figure(person["person_id"], figsize=(num_cols, num_cols))
     for i, face in enumerate(faces):
         image = io.imread(face["path"])
         ax = plt.subplot(num_cols, num_cols, i + 1)
-
-        #ax.text(0, 40, "{0:.2f}".format(face["quality"]), fontsize=10, color='red')
-        ax.text(0, 40, "{0:.2f}".format(face["quality_details"]["avg_own"]), fontsize=10, color='red')
-        ax.text(100, 40, "{0:.2f}".format(face["quality_details"]["avg_oth"]), fontsize=10, color='green')
-        ax.text(0, 80, "{0:.2f}".format(face["quality_details"]["n_false_negative"]), fontsize=10, color='blue')
-        ax.text(100, 80, "{0:.2f}".format(face["quality_details"]["n_false_positive"]), fontsize=10, color='yellow')
-        ax.text(0, 120, "{0:.2f}".format(face["quality_details"]["avg_others_like_me"]), fontsize=10, color='white')
-
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
+        ax.set_axis_off()
+        decorate_image_with_metrics(ax, image, face)
         plt.imshow(image)
-        plt.gray()
-    plt.subplots_adjust(wspace=0, hspace=0)
+
+    plt.subplots_adjust(wspace=0.1, hspace=0, left=0, right=1, top=1, bottom=0)
     plt.draw()  # plt.show()
     return None
 

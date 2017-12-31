@@ -77,6 +77,7 @@ def filter_dataset_errors(people):
     The MS-Celeb dataset have lots of people placed in wrong
     """
     calculate_qualities(people)     # Or use a tailored calculation for filtering???
+    print("Filtering dataset for people not belonging")
     for person_id, person in people.items():
         faces = sorted(person["faces"], key=lambda f: -f['quality'])
         n_false_negatives = faces[0]["quality_details"]["n_false_negative"]
@@ -97,9 +98,8 @@ def decorate_image_with_metrics(ax, image, face):
     # ax.text(0, 0, "{0:.2f}".format(face["quality"]), fontsize=10, color='red', verticalalignment='bottom')
     ax.text(0, 0,   "{0:.2f}".format(face["quality_details"]["avg_own"]), color='red', verticalalignment='top')
     ax.text(w, 0,   "{0:.2f}".format(face["quality_details"]["avg_oth"]), color='green', verticalalignment='top')
-    ax.text(0, h,   "{0:.2f}".format(face["quality_details"]["n_false_negative"]), color='blue', verticalalignment='top')
-    ax.text(w, h,   "{0:.2f}".format(face["quality_details"]["n_false_positive"]), color='yellow', verticalalignment='top')
-    ax.text(0, h*2, "{0:.2f}".format(face["quality_details"]["avg_others_like_me"]), color='white', verticalalignment='top')
+    ax.text(0, h,   "{}/{}".format(face["quality_details"]["n_false_negative"], face["quality_details"]["n_false_positive"]), color='blue', verticalalignment='top')
+    ax.text(w, h,   "{0:.2f}".format(face["quality_details"]["avg_others_like_me"]), color='white', verticalalignment='top')
 
 
 def plot_persons_faces(person):
@@ -124,14 +124,14 @@ def plot_images(people):
     #     plot_persons_faces(person)
     people_arr = list(people.values())
     plot_persons_faces(people_arr[1])
-    plot_persons_faces(people_arr[7])
+    plot_persons_faces(people_arr[5])
     plot_persons_faces(people_arr[11])
-
-
+    plot_persons_faces(people_arr[12])
+    plot_persons_faces(people_arr[13])
 
 
 people = load_dict(intermediate_file)
-filter_dataset_errors(people)
+#filter_dataset_errors(people)
 calculate_qualities(people)
 
 print_best_image(people)
